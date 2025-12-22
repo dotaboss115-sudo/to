@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0,
+                 user-scalable=no, viewport-fit=cover">
+  <title>СИБИНТЕК ТО 2026</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <style>
+    :root{
+      --bg:#000000;
+      --surface:#111115;
+      --surface-soft:#18181c;
+      --stroke:#262629;
+      --brand:#ff9f0a;
+      --accent:#32d74b;
+      --danger:#ff453a;
+      --muted:#8e8e93;
+      --grad-gold:linear-gradient(120deg,#ff9f0a,#ffd60a,#ff9f0a);
+      --grad-green:linear-gradient(135deg,#34c759,#30d158,#34c759);
+    }
+    @keyframes shimmer{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+
+    html{-webkit-text-size-adjust:100%}
+    html,body{overflow-x:hidden;width:100%;max-width:100%}
+    body{
+      margin:0;padding:0;height:100vh;display:flex;flex-direction:column;
+      background:radial-gradient(circle at top,#151515 0,#000 55%);
+      color:#fff;font-family:-apple-system,system-ui,sans-serif;
+      box-sizing:border-box;overflow:hidden;
+    }
+
+    header{
+      flex-shrink:0;padding:calc(env(safe-area-inset-top)+8px) 14px 8px;
+      border-bottom:1px solid var(--stroke);
+      backdrop-filter:blur(18px);
+      background:
+        radial-gradient(circle at top left,rgba(255,159,10,.18) 0,transparent 60%),
+        rgba(0,0,0,.9);
+    }
+    .top-row{
+      display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;
+    }
+    .logo{
+      font-size:22px;font-weight:900;letter-spacing:4px;
+      text-transform:uppercase;white-space:nowrap;
+      background:var(--grad-gold);background-size:220% 220%;
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      animation:shimmer 2.2s linear infinite;
+    }
+    .year-pill{
+      font-size:11px;padding:3px 10px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.2);color:#ddd;
+    }
+
+    .month-strip{
+      display:flex;overflow-x:auto;gap:6px;
+      padding:4px 0 6px;margin-bottom:4px;
+      -webkit-overflow-scrolling:touch;scrollbar-width:none;
+    }
+    .month-strip::-webkit-scrollbar{display:none}
+    .month-chip{
+      flex-shrink:0;padding:6px 10px;border-radius:999px;
+      border:1px solid #343438;background:#15151a;
+      color:var(--muted);font-size:11px;
+    }
+    .month-chip.active{
+      background:var(--grad-gold);background-size:200% 200%;
+      color:#140a02;border-color:transparent;font-weight:700;
+    }
+
+    .progress-wrap{margin-bottom:6px;}
+    .progress-label{
+      font-size:10px;color:var(--muted);
+      display:flex;justify-content:space-between;margin-bottom:2px;
+    }
+    .progress-line{
+      width:100%;height:4px;border-radius:999px;
+      background:#1c1c21;overflow:hidden;
+    }
+    .progress-fill{
+      height:100%;border-radius:inherit;
+      background:var(--grad-green);
+      width:0%;transition:width .18s ease-out;
+    }
+
+    .search-row{
+      display:flex;gap:6px;margin-bottom:6px;
+    }
+    .search-box{
+      flex:1;background:#1c1c20;border:1px solid #343438;
+      border-radius:10px;padding:7px 9px;color:#fff;
+      font-size:14px;box-sizing:border-box;
+    }
+    .filter-select{
+      width:98px;background:#1c1c20;border:1px solid #343438;
+      border-radius:10px;color:#eee;font-size:11px;padding:7px 6px;
+    }
+
+    .stats-row{
+      display:flex;gap:6px;margin-bottom:6px;
+    }
+    .stat-pill{
+      flex:1;background:#111115;border-radius:11px;
+      border:1px solid #262629;padding:6px 6px;
+      font-size:10px;text-align:center;
+    }
+    .stat-pill b{display:block;font-size:15px;}
+
+    .action-bar{
+      display:flex;gap:6px;margin-bottom:4px;
+    }
+    .btn-sm{
+      flex:1;border-radius:10px;border:none;
+      padding:7px 7px;font-size:11px;font-weight:700;
+      text-transform:uppercase;letter-spacing:.4px;
+      display:flex;align-items:center;justify-content:center;
+      white-space:nowrap;box-sizing:border-box;
+    }
+    .btn-import{
+      background:var(--grad-green);background-size:220% 220%;
+      color:#021108;box-shadow:0 3px 10px rgba(48,209,88,.45);
+    }
+    .btn-export{
+      background:var(--grad-gold);background-size:220% 220%;
+      color:#140a02;box-shadow:0 3px 10px rgba(255,159,10,.4);
+    }
+    .btn-reset{
+      background:#19191c;border:1px solid rgba(255,69,58,.6);
+      color:#ff7670;
+    }
+
+    .list{
+      flex:1;overflow-y:auto;overflow-x:hidden;
+      padding:8px 14px 14px;box-sizing:border-box;
+      -webkit-overflow-scrolling:touch;
+    }
+
+    .card{
+      background:#141417;border-radius:14px;
+      border:1px solid #262629;padding:9px 11px;
+      margin-bottom:7px;font-size:11px;
+    }
+    .card-header{
+      display:flex;justify-content:space-between;margin-bottom:3px;
+    }
+    .card-title{
+      max-width:72%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      font-weight:700;font-size:13px;color:#ffd68b;
+    }
+    .card-status{
+      font-size:11px;font-weight:600;
+    }
+    .card-status.done{color:#32d74b;}
+    .card-status.todo{color:#8e8e93;}
+
+    .card-line{margin-bottom:3px;}
+    .card-label{color:#8e8e93;font-size:10px;text-transform:uppercase;}
+    .card-sn{font-size:12px;color:#f5f5f7;}
+
+    .tag-row{
+      display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;
+    }
+    .tag{
+      padding:2px 7px;border-radius:999px;
+      border:1px solid #343438;color:#ccc;font-size:10px;
+    }
+    .tag.type2{border-color:rgba(50,215,75,.7);color:#b5ffbf;}
+    .tag.type3{border-color:rgba(255,214,10,.7);color:#fff4b0;}
+    .tag.note{border-style:dashed;}
+
+    .card-footer{
+      display:flex;justify-content:space-between;align-items:center;
+      margin-top:4px;font-size:10px;color:#8e8e93;
+    }
+    .btn-main{
+      padding:5px 10px;border-radius:999px;border:none;
+      background:#2c2c31;color:#f5f5f7;font-size:11px;font-weight:600;
+    }
+
+    .empty{
+      font-size:12px;color:#8e8e93;text-align:center;
+      padding:24px 10px;
+    }
+
+    /* DETAIL SHEET */
+    .detail-backdrop{
+      position:fixed;inset:0;background:rgba(0,0,0,.75);
+      display:none;z-index:40;
+    }
+    .detail{
+      position:absolute;left:0;right:0;bottom:0;
+      top:calc(env(safe-area-inset-top)+40px);
+      background:#050506;border-radius:18px 18px 0 0;
+      box-shadow:0 -10px 40px rgba(0,0,0,.9);
+      transform:translateY(100%);
+      transition:transform .22s ease-out;
+      display:flex;flex-direction:column;
+    }
+    .detail-handle{
+      width:38px;height:4px;border-radius:999px;
+      background:#444;margin:8px auto 6px;
+    }
+    .detail-header{padding:0 16px 4px;}
+    .detail-title{
+      font-size:15px;font-weight:800;margin-bottom:2px;
+      color:#ffd68b;
+    }
+    .detail-sub{font-size:11px;color:#8e8e93;}
+
+    .detail-body{
+      flex:1;overflow-y:auto;padding:6px 16px 10px;
+      font-size:12px;
+    }
+    .detail-row{margin-bottom:6px;}
+    .detail-label{
+      font-size:10px;color:#8e8e93;text-transform:uppercase;margin-bottom:2px;
+    }
+    .detail-value{font-size:12px;color:#f5f5f7;}
+    .detail-months{
+      display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;
+    }
+    .d-month{
+      padding:3px 7px;border-radius:999px;border:1px solid #343438;
+      font-size:11px;
+    }
+    .d-month.to2{border-color:rgba(50,215,75,.7);color:#b5ffbf;}
+    .d-month.to3{border-color:rgba(255,214,10,.7);color:#fff4b0;}
+
+    .detail-note{
+      width:100%;box-sizing:border-box;background:#151518;
+      border:1px solid #333;border-radius:9px;
+      padding:7px 8px;color:#fff;font-size:13px;
+    }
+
+    .detail-footer{
+      padding:8px 16px 12px;border-top:1px solid #262629;
+      display:flex;gap:8px;
+    }
+    .btn-detail{
+      flex:1;border-radius:11px;border:none;
+      padding:9px;font-size:13px;font-weight:700;
+    }
+    .btn-detail-close{background:#232327;color:#eee;}
+    .btn-detail-done{background:var(--grad-green);color:#021108;}
+
+    @supports(padding-bottom: env(safe-area-inset-bottom)){
+      body{padding-bottom:env(safe-area-inset-bottom);}
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="top-row">
+    <div class="logo">СИБИНТЕК ТО</div>
+    <div class="year-pill">2026</div>
+  </div>
+
+  <div class="month-strip" id="monthStrip"></div>
+
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span id="progressCaption">Прогресс по месяцу</span>
+      <span id="progressLabel">0%</span>
+    </div>
+    <div class="progress-line">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <div class="search-row">
+    <input id="search" class="search-box" placeholder="Поиск по названию или S/N...">
+    <select id="filterType" class="filter-select">
+      <option value="">Все</option>
+      <option value="ТО-2">ТО‑2</option>
+      <option value="ТО-3">ТО‑3</option>
+    </select>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-pill"><b id="statTotal">0</b>приборов</div>
+    <div class="stat-pill"><b id="statTo2">0</b>ТО‑2</div>
+    <div class="stat-pill"><b id="statTo3">0</b>ТО‑3</div>
+    <div class="stat-pill"><b id="statDone" style="color:#32d74b">0</b>выполнено</div>
+  </div>
+
+  <div class="action-bar">
+    <label class="btn-sm btn-import">
+      ИМПОРТ CSV
+      <input type="file" id="file" style="display:none" accept=".csv">
+    </label>
+    <button class="btn-sm btn-export" id="btnExport">ЭКСПОРТ</button>
+    <button class="btn-sm btn-reset" id="btnReset">СБРОС</button>
+  </div>
+</header>
+
+<div class="list" id="listView"></div>
+
+<div class="detail-backdrop" id="detailBackdrop">
+  <div class="detail" id="detail">
+    <div class="detail-handle"></div>
+    <div class="detail-header">
+      <div class="detail-title" id="detailTitle"></div>
+      <div class="detail-sub" id="detailSub"></div>
+    </div>
+    <div class="detail-body">
+      <div class="detail-row">
+        <div class="detail-label">S/N</div>
+        <div class="detail-value" id="detailSn"></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Годовой план ТО</div>
+        <div class="detail-months" id="detailMonths"></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Комментарий</div>
+        <input id="detailNote" class="detail-note"
+               placeholder="Например: выполнено 12.02, акт №123">
+      </div>
+    </div>
+    <div class="detail-footer">
+      <button class="btn-detail btn-detail-close" id="detailClose">Закрыть</button>
+      <button class="btn-detail btn-detail-done" id="detailDone">Выполнено сегодня</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const MONTHS=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  const MONTHS_SHORT=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+
+  let items=[]; // {id,name,sn,months[12]}
+  let state={}; // {id:{done, note, doneDate}}
+  const STATE_KEY='sib_to_2026_state_final';
+
+  let selectedMonth=(new Date()).getMonth();
+  let currentDetailIndex=-1;
+
+  const monthStrip=document.getElementById('monthStrip');
+  const listView=document.getElementById('listView');
+  const searchEl=document.getElementById('search');
+  const filterTypeEl=document.getElementById('filterType');
+  const progressFill=document.getElementById('progressFill');
+  const progressLabel=document.getElementById('progressLabel');
+  const progressCaption=document.getElementById('progressCaption');
+
+  const detailBackdrop=document.getElementById('detailBackdrop');
+  const detail=document.getElementById('detail');
+  const detailTitle=document.getElementById('detailTitle');
+  const detailSub=document.getElementById('detailSub');
+  const detailSn=document.getElementById('detailSn');
+  const detailMonths=document.getElementById('detailMonths');
+  const detailNote=document.getElementById('detailNote');
+
+  function loadState(){
+    try{
+      const raw=localStorage.getItem(STATE_KEY);
+      state=raw?JSON.parse(raw):{};
+    }catch(e){state={};}
+  }
+  function saveState(){localStorage.setItem(STATE_KEY,JSON.stringify(state));}
+
+  function parseRow(row){
+    if(!row[0] || !row[1]) return null;
+    const id=String(row[0]).trim();
+    const name=String(row[1]).trim();
+    if(id==='1' && name==='2') return null; // убрать мусор
+    const sn=String(row[2]||'').trim();
+    const months=[];
+    for(let i=0;i<12;i++){
+      const v=String(row[3+i]||'').trim();
+      months[i]=(v==='ТО-2'||v==='ТО-3')?v:'';
+    }
+    return {id,name,sn,months};
+  }
+
+  document.getElementById('file').onchange=e=>{
+    const file=e.target.files[0];if(!file)return;
+    Papa.parse(file,{
+      complete:res=>{
+        items=[];
+        (res.data||[]).forEach(row=>{
+          const it=parseRow(row);
+          if(it) items.push(it);
+        });
+        buildMonthStrip();
+        render();
+      }
+    });
+  };
+
+  function buildMonthStrip(){
+    monthStrip.innerHTML='';
+    MONTHS.forEach((m,i)=>{
+      const chip=document.createElement('div');
+      chip.className='month-chip'+(i===selectedMonth?' active':'');
+      chip.textContent=m;
+      chip.addEventListener('click',()=>{
+        selectedMonth=i;
+        document.querySelectorAll('.month-chip').forEach(c=>c.classList.remove('active'));
+        chip.classList.add('active');
+        render();
+      });
+      monthStrip.appendChild(chip);
+    });
+  }
+
+  function exportState(){
+    if(!items.length){alert('Нет данных для экспорта');return;}
+    const header=['ID','Название','S/N','Месяц','Тип ТО','Выполнено','Дата','Комментарий'];
+    const rows=[header];
+    items.forEach(it=>{
+      const st=state[it.id]||{};
+      const done=st.done?'1':'';
+      const date=st.doneDate||'';
+      const note=(st.note||'').replace(/"/g,'""');
+      it.months.forEach((v,i)=>{
+        if(!v) return;
+        rows.push([
+          it.id,
+          `"${it.name}"`,
+          `"${it.sn}"`,
+          MONTHS_SHORT[i],
+          v,
+          done,
+          date,
+          `"${note}"`
+        ]);
+      });
+    });
+    const csv=rows.map(r=>r.join(',')).join('\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='sibintek_to_state.csv';
+    document.body.appendChild(a);a.click();
+    document.body.removeChild(a);URL.revokeObjectURL(url);
+  }
+
+  function resetLocal(){
+    if(confirm('Сбросить отметки и комментарии?')){
+      state={};saveState();render();
+    }
+  }
+
+  function openDetail(idx){
+    currentDetailIndex=idx;
+    const it=items[idx];
+    const st=state[it.id]||{};
+    detailTitle.textContent=`#${it.id} ${it.name}`;
+    detailSub.textContent='ТО в '+MONTHS[selectedMonth];
+    detailSn.textContent=it.sn||'—';
+    detailNote.value=st.note||'';
+    detailMonths.innerHTML='';
+    it.months.forEach((v,i)=>{
+      if(!v)return;
+      const chip=document.createElement('div');
+      chip.className='d-month '+(v==='ТО-2'?'to2':'to3');
+      chip.textContent=MONTHS_SHORT[i]+' · '+v;
+      detailMonths.appendChild(chip);
+    });
+    detailBackdrop.style.display='block';
+    setTimeout(()=>{detail.style.transform='translateY(0)';},10);
+  }
+  function closeDetail(){
+    detail.style.transform='translateY(100%)';
+    setTimeout(()=>{detailBackdrop.style.display='none';currentDetailIndex=-1;},220);
+  }
+  function markDoneToday(){
+    if(currentDetailIndex<0)return;
+    const it=items[currentDetailIndex];
+    const today=new Date();
+    const dStr=today.toLocaleDateString('ru-RU');
+    if(!state[it.id]) state[it.id]={};
+    state[it.id].done=true;
+    state[it.id].doneDate=dStr;
+    state[it.id].note=detailNote.value.trim();
+    saveState();
+    closeDetail();
+    render();
+  }
+
+  function render(){
+    const q=searchEl.value.toLowerCase();
+    const fType=filterTypeEl.value;
+    const mIdx=selectedMonth;
+
+    let total=0,to2=0,to3=0,done=0;
+    listView.innerHTML='';
+
+    items.forEach((it,idx)=>{
+      const val=it.months[mIdx];
+      if(!val) return;
+      if(fType && val!==fType) return;
+      if(q){
+        const hay=(it.name+' '+it.sn).toLowerCase();
+        if(!hay.includes(q)) return;
+      }
+      const st=state[it.id]||{};
+      total++;
+      if(val==='ТО-2')to2++; else if(val==='ТО-3')to3++;
+      if(st.done) done++;
+
+      const card=document.createElement('div');
+      card.className='card';
+      const statusClass=st.done?'done':'todo';
+      const statusText=st.done?`Выполнено (${st.doneDate||''})`:'В работе';
+      card.innerHTML=`
+        <div class="card-header">
+          <div class="card-title">#${it.id} ${it.name}</div>
+          <div class="card-status ${statusClass}">${statusText}</div>
+        </div>
+        <div class="card-line">
+          <span class="card-label">S/N</span>
+          <span class="card-sn">${it.sn || '—'}</span>
+        </div>
+        <div class="tag-row">
+          <span class="tag ${val==='ТО-2'?'type2':'type3'}">${val}</span>
+          <span class="tag">${MONTHS_SHORT[mIdx]}</span>
+          ${st.note?`<span class="tag note">${st.note}</span>`:''}
+        </div>
+        <div class="card-footer">
+          <span>${st.done?'Можно изменить комментарий':'Нажми, чтобы отметить выполнение'}</span>
+          <button class="btn-main" type="button">Открыть</button>
+        </div>
+      `;
+      card.addEventListener('click',()=>openDetail(idx));
+      listView.appendChild(card);
+    });
+
+    if(!listView.children.length){
+      const div=document.createElement('div');
+      div.className='empty';
+      div.textContent='В этом месяце по выбранным фильтрам приборов нет.';
+      listView.appendChild(div);
+    }
+
+    document.getElementById('statTotal').textContent=total;
+    document.getElementById('statTo2').textContent=to2;
+    document.getElementById('statTo3').textContent=to3;
+    document.getElementById('statDone').textContent=done;
+
+    const p=total?Math.round(done/total*100):0;
+    progressFill.style.width=p+'%';
+    progressLabel.textContent=p+'%';
+    progressCaption.textContent='Прогресс по '+MONTHS[mIdx];
+  }
+
+  // events
+  searchEl.oninput=render;
+  filterTypeEl.onchange=render;
+  document.getElementById('btnExport').onclick=exportState;
+  document.getElementById('btnReset').onclick=resetLocal;
+
+  detailBackdrop.addEventListener('click',e=>{
+    if(e.target===detailBackdrop) closeDetail();
+  });
+  document.getElementById('detailClose').onclick=closeDetail;
+  document.getElementById('detailDone').onclick=markDoneToday;
+
+  // init
+  loadState();
+  buildMonthStrip();
+  render();
+</script>
+
+</body>
+</html>
